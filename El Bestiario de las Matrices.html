@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Bestiario de las Matrices - Aplicación Interactiva</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- KaTeX CDN for TeX rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 3px;
+        }
+        .matrix-bracket {
+            position: relative;
+        }
+        .matrix-bracket::before, .matrix-bracket::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            border: 2px solid #3b82f6;
+        }
+        .matrix-bracket::before {
+            left: -10px;
+            border-right: none;
+            border-radius: 6px 0 0 6px;
+        }
+        .matrix-bracket::after {
+            right: -10px;
+            border-left: none;
+            border-radius: 0 6px 6px 0;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-blue-600 selection:text-white">
+
+    <!-- Encabezado Principal -->
+    <header class="border-b border-slate-800 glass-panel sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-table-cells text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
+                        El Bestiario de las Matrices
+                    </h1>
+                    <p class="text-xs text-slate-400">Guía interactiva de tipos, familias, propiedades y geometría matricial</p>
+                </div>
+            </div>
+
+            <!-- Navegación de Pestañas -->
+            <nav class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-sm font-medium">
+                <button onclick="switchTab('bestiario')" id="tab-bestiario" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 transition-all bg-blue-600 text-white shadow-md">
+                    <i class="fa-solid fa-book-open text-xs"></i> Bestiario
+                </button>
+                <button onclick="switchTab('laboratorio')" id="tab-laboratorio" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-flask text-xs"></i> Laboratorio
+                </button>
+                <button onclick="switchTab('geometria')" id="tab-geometria" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-shapes text-xs"></i> Geometría 2D
+                </button>
+                <button onclick="switchTab('verificador')" id="tab-verificador" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 transition-all text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-magnifying-glass-chart text-xs"></i> Identificador
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- PESTAÑA 1: EL BESTIARIO DE MATRICES -->
+        <section id="view-bestiario" class="space-y-6">
+            <!-- Barra de búsqueda y filtros -->
+            <div class="glass-panel p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="relative w-full md:w-96">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="search-bestiario" oninput="filterBestiary()" placeholder="Buscar matriz (ej. Toeplitz, Simétrica, Nilpotente)..." class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto" id="category-filters">
+                    <button onclick="filterCategory('all')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all">Todas</button>
+                    <button onclick="filterCategory('basicas')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Básicas</button>
+                    <button onclick="filterCategory('estructura')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Estructura</button>
+                    <button onclick="filterCategory('simetria')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Simetrías</button>
+                    <button onclick="filterCategory('operacional')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Operacionales</button>
+                    <button onclick="filterCategory('especiales')" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Especiales & Aplicadas</button>
+                </div>
+            </div>
+
+            <!-- Grid de Tarjetas del Bestiario -->
+            <div id="bestiary-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Se rellena dinámicamente con JavaScript -->
+            </div>
+        </section>
+
+        <!-- PESTAÑA 2: LABORATORIO Y EDITOR MATRICIAL -->
+        <section id="view-laboratorio" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Panel Lateral Izquierdo: Configuración e Inserción -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="glass-panel p-5 rounded-2xl space-y-5">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-lg font-bold flex items-center gap-2 text-blue-400">
+                                <i class="fa-solid fa-sliders text-sm"></i> Matriz Activa
+                            </h2>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs text-slate-400">Tamaño:</label>
+                                <select id="matrix-size-select" onchange="changeMatrixSize(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200">
+                                    <option value="2x2">2 × 2</option>
+                                    <option value="3x3" selected>3 × 3</option>
+                                    <option value="4x4">4 × 4</option>
+                                    <option value="5x5">5 × 5</option>
+                                    <option value="3x2">3 × 2 (Rectangular)</option>
+                                    <option value="2x3">2 × 3 (Rectangular)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Cargar Plantilla Preset -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-2">Cargar Ejemplo del Bestiario:</label>
+                            <select id="preset-select" onchange="loadPresetMatrix(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                                <option value="">-- Seleccionar Preset --</option>
+                            </select>
+                        </div>
+
+                        <!-- Matriz de Entradas -->
+                        <div class="space-y-3">
+                            <label class="block text-xs font-semibold text-slate-400">Valores de las Celdas:</label>
+                            <div class="flex items-center justify-center p-4 bg-slate-900/80 rounded-xl border border-slate-800">
+                                <div id="interactive-matrix-container" class="matrix-bracket p-2 transition-all">
+                                    <!-- Inputs dinámicos -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acciones Rápida -->
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="randomizeMatrix()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-shuffle text-blue-400"></i> Aleatoria
+                            </button>
+                            <button onclick="clearMatrix()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-eraser text-amber-400"></i> Cero / Nula
+                            </button>
+                            <button onclick="setIdentityMatrix()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-fingerprint text-emerald-400"></i> Identidad
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Representación Visual de Mapa de Calor / Estructura -->
+                    <div class="glass-panel p-5 rounded-2xl space-y-3">
+                        <h3 class="text-sm font-semibold text-slate-300 flex items-center justify-between">
+                            <span><i class="fa-solid fa-eye text-indigo-400 mr-1.5"></i> Mapa Estructural</span>
+                            <span class="text-xs font-normal text-slate-400" id="matrix-density-tag">Densidad: 100%</span>
+                        </h3>
+                        <div id="matrix-heatmap" class="grid gap-1.5 p-3 bg-slate-900/90 rounded-xl border border-slate-800 justify-center">
+                            <!-- Visualización gráfica -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Derecho: Propiedades Calculadas y Análisis -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="glass-panel p-6 rounded-2xl space-y-6">
+                        <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
+                            <i class="fa-solid fa-chart-pie text-blue-400"></i> Análisis Inmediato de Propiedades
+                        </h2>
+
+                        <!-- Indicadores Numéricos -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl text-center">
+                                <span class="block text-xs text-slate-400 uppercase font-semibold">Determinante</span>
+                                <span id="calc-det" class="text-lg font-extrabold text-blue-400 mt-1 block">0</span>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl text-center">
+                                <span class="block text-xs text-slate-400 uppercase font-semibold">Traza</span>
+                                <span id="calc-trace" class="text-lg font-extrabold text-indigo-400 mt-1 block">0</span>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl text-center">
+                                <span class="block text-xs text-slate-400 uppercase font-semibold">Rango Estimado</span>
+                                <span id="calc-rank" class="text-lg font-extrabold text-emerald-400 mt-1 block">0</span>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl text-center">
+                                <span class="block text-xs text-slate-400 uppercase font-semibold">Condición</span>
+                                <span id="calc-regularity" class="text-xs font-bold text-amber-400 mt-2 block">Singular</span>
+                            </div>
+                        </div>
+
+                        <!-- Clasificación de Bestias Coincidentes -->
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Familias y Tipos Identificados en esta Matriz:</h3>
+                            <div id="detected-types-tags" class="flex flex-wrap gap-2">
+                                <!-- Tags dinámicos -->
+                            </div>
+                        </div>
+
+                        <!-- Operaciones Calculadas (Transpuesta, Inversa, Potencia 2) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
+                                <h4 class="text-xs font-bold text-slate-300 flex items-center justify-between">
+                                    <span>Transpuesta $A^T$</span>
+                                </h4>
+                                <div id="calc-transpose-display" class="text-xs text-slate-300 font-mono overflow-x-auto py-2">
+                                    <!-- Rendered math -->
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
+                                <h4 class="text-xs font-bold text-slate-300 flex items-center justify-between">
+                                    <span>Inversa $A^{-1}$</span>
+                                </h4>
+                                <div id="calc-inverse-display" class="text-xs text-slate-300 font-mono overflow-x-auto py-2">
+                                    <!-- Rendered math -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Espectro / Eigenvalores (Si es 2x2 o 3x3) -->
+                        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
+                            <h4 class="text-xs font-bold text-slate-300 flex items-center justify-between">
+                                <span><i class="fa-solid fa-atom text-purple-400 mr-1"></i> Autovalores / Eigenvalores ($\lambda$)</span>
+                            </h4>
+                            <div id="calc-eigen-display" class="text-xs text-slate-300 font-mono">
+                                <!-- Computed eigenvalues -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 3: VISUALIZADOR GEOMÉTRICO 2D -->
+        <section id="view-geometria" class="hidden space-y-6">
+            <div class="glass-panel p-6 rounded-2xl space-y-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-vector-square text-blue-400"></i> Transformación Lineal en $\mathbb{R}^2$
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">
+                            Una matriz de $2\times 2$ actúa como una transformación del espacio. Observa cómo deforma la cuadrícula, los vectores unitarios $\hat{i} = (1,0)$ y $\hat{j} = (0,1)$ y la figura.
+                        </p>
+                    </div>
+
+                    <!-- Botones de Transformaciones Famosas -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setGeoPreset(1,0,0,1)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium border border-slate-700">Identidad</button>
+                        <button onclick="setGeoPreset(2,0,0,0.5)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium border border-slate-700">Escalado</button>
+                        <button onclick="setGeoPreset(0,-1,1,0)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium border border-slate-700">Rotación 90°</button>
+                        <button onclick="setGeoPreset(1,1,0,1)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium border border-slate-700">Cizallamiento (Shear)</button>
+                        <button onclick="setGeoPreset(1,0,0,-1)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium border border-slate-700">Reflexión X</button>
+                        <button onclick="setGeoPreset(1,0,0,0)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-medium border border-slate-700">Proyección (Singular)</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <!-- Controles 2x2 -->
+                    <div class="lg:col-span-4 space-y-5 bg-slate-900/80 p-5 rounded-xl border border-slate-800">
+                        <h3 class="text-sm font-bold text-slate-200">Matriz de Transformación $A$:</h3>
+                        <div class="grid grid-cols-2 gap-3 max-w-[200px] mx-auto">
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">a11 ($\hat{i}_x$)</label>
+                                <input type="number" id="geo-a11" value="1" step="0.1" oninput="updateGeoCanvas()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-center text-sm font-mono text-emerald-400 font-bold">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">a12 ($\hat{j}_x$)</label>
+                                <input type="number" id="geo-a12" value="0" step="0.1" oninput="updateGeoCanvas()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-center text-sm font-mono text-rose-400 font-bold">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">a21 ($\hat{i}_y$)</label>
+                                <input type="number" id="geo-a21" value="0" step="0.1" oninput="updateGeoCanvas()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-center text-sm font-mono text-emerald-400 font-bold">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">a22 ($\hat{j}_y$)</label>
+                                <input type="number" id="geo-a22" value="1" step="0.1" oninput="updateGeoCanvas()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-center text-sm font-mono text-rose-400 font-bold">
+                            </div>
+                        </div>
+
+                        <!-- Info Det / Área -->
+                        <div class="space-y-2 pt-2 border-t border-slate-800 text-xs">
+                            <div class="flex justify-between items-center text-slate-300">
+                                <span>Factor de Escala de Área ($\det A$):</span>
+                                <span id="geo-det-val" class="font-mono font-bold text-blue-400">1.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-slate-300">
+                                <span>Orientación de Espacio:</span>
+                                <span id="geo-orient-val" class="font-bold text-emerald-400">Conservada (+)</span>
+                            </div>
+                        </div>
+
+                        <!-- Controles de Animación -->
+                        <div class="pt-2">
+                            <label class="text-xs text-slate-400 block mb-1">Interpolación / Animación:</label>
+                            <input type="range" id="geo-anim-slider" min="0" max="1" step="0.01" value="1" oninput="updateGeoCanvas()" class="w-full accent-blue-500">
+                            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                                <span>Espacio Original ($I$)</span>
+                                <span>Transformado ($A$)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas 2D -->
+                    <div class="lg:col-span-8 flex justify-center">
+                        <div class="relative w-full aspect-square max-w-[500px] bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+                            <canvas id="geoCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                            <!-- Leyenda flotante -->
+                            <div class="absolute bottom-3 left-3 bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl text-[11px] space-y-1 backdrop-blur-md">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-0.5 bg-emerald-400 inline-block"></span> Vector $\hat{i}' = A(1,0)^T$
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-0.5 bg-rose-400 inline-block"></span> Vector $\hat{j}' = A(0,1)^T$
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 bg-blue-500/30 border border-blue-400 inline-block rounded"></span> Área Transformada
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 4: IDENTIFICADOR / COMPROBADOR DE MATRICES -->
+        <section id="view-verificador" class="hidden space-y-6">
+            <div class="glass-panel p-6 rounded-2xl space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-emerald-400"></i> Verificador de Propiedades ("¿Qué Bestia es?")
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Pega o edita una matriz y el algoritmo verificará automáticamente el cumplimiento de todas las definiciones del Bestiario.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <label class="block text-xs font-semibold text-slate-300">Pegar o Escribir Matriz (Formato Texto / CSV / Filas con comas o espacios):</label>
+                        <textarea id="verifier-input-text" rows="6" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 font-mono text-sm text-slate-200 focus:outline-none focus:border-blue-500" placeholder="Ejemplo:
+1, 2, 3
+2, 4, 5
+3, 5, 6"></textarea>
+                        <button onclick="parseAndVerifyMatrix()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-blue-600/30">
+                            <i class="fa-solid fa-bolt mr-1"></i> Analizar Matriz
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider">Resultado del Test de Diagnóstico:</h3>
+                        <div id="verifier-checklist" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                            <p class="text-xs text-slate-500 italic">Presiona "Analizar Matriz" para comprobar las propiedades de la matriz ingresada.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Footer -->
+    <footer class="border-t border-slate-900 glass-panel py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>Inspirado en el vídeo de divulgación <b>"EL BESTIARIO DE LAS MATRICES"</b>.</span>
+            <span>Matemáticas Interactivas con HTML5 + JS + Tailwind CSS</span>
+        </div>
+    </footer>
+
+    <!-- MODAL DE DETALLE DE BESTIA -->
+    <div id="bestiary-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="glass-panel max-w-2xl w-full rounded-2xl p-6 space-y-5 relative max-h-[90vh] overflow-y-auto custom-scrollbar border border-slate-700">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <span id="modal-category-badge" class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30">Básica</span>
+                <span id="modal-timestamp" class="text-xs text-slate-400"><i class="fa-regular fa-clock mr-1"></i>Minuto del vídeo: 0:00</span>
+            </div>
+
+            <h2 id="modal-title" class="text-2xl font-extrabold text-white">Nombre de la Matriz</h2>
+
+            <div class="p-4 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2">
+                <h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider">Condición Matemática</h4>
+                <div id="modal-formula" class="text-sm font-mono text-slate-200">
+                    <!-- LaTeX formula -->
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Descripción y Propiedades Key:</h4>
+                <p id="modal-description" class="text-sm text-slate-300 leading-relaxed"></p>
+            </div>
+
+            <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-800 space-y-2">
+                <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Aplicaciones y Usos Reales:</h4>
+                <p id="modal-applications" class="text-xs text-slate-300 leading-relaxed"></p>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+                <button id="modal-load-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-flask"></i> Cargar en el Laboratorio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGICA JAVASCRIPT COMPLETA -->
+    <script>
+        // --- BASE DE DATOS DEL BESTIARIO DE MATRICES ---
+        const BESTIARY_DATA = [
+            {
+                id: "cuadrada_rect",
+                name: "Matriz Cuadrada / Rectangular",
+                category: "basicas",
+                timestamp: "1:25",
+                formula: "A_{m \\times n} \\quad (\\text{Cuadrada si } m = n, \\text{ Rectangular si } m \\neq n)",
+                description: "Representa una ordenación de números en $m$ filas y $n$ columnas. Las matrices cuadradas son fundamentales porque permiten definir conceptos como el determinante, la traza, la inversa y los autovalores.",
+                applications: "Modelado de sistemas de ecuaciones lineales, transformaciones geométricas, bases de datos y redes neuronales.",
+                preset: [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+            },
+            {
+                id: "nula",
+                name: "Matriz Nula (Cero)",
+                category: "basicas",
+                timestamp: "2:11",
+                formula: "O_{m \\times n} = (0)_{ij}, \\quad \\forall i,j",
+                description: "Matriz donde todas sus entradas son iguales a cero. Funciona como el elemento neutro para la suma matricial ($A + O = A$). Su determinante y su traza son siempre 0.",
+                applications: "Sistemas homogéneos, punto de partida en algoritmos iterativos y álgebra lineal abstracta.",
+                preset: [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+            },
+            {
+                id: "identidad",
+                name: "Matriz Identidad",
+                category: "basicas",
+                timestamp: "2:45",
+                formula: "I_n = (\\delta_{ij}), \\quad \\delta_{ij} = \\begin{cases} 1 & i = j \\\\ 0 & i \\neq j \\end{cases}",
+                description: "Matriz cuadrada con unos en la diagonal principal y ceros en el resto. Es el elemento neutro de la multiplicación de matrices ($A \\cdot I = A$).",
+                applications: "Cálculo de la matriz inversa, resolución de sistemas $Ax=b$, algoritmos de autovalores.",
+                preset: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+            },
+            {
+                id: "escalar",
+                name: "Matriz Escalar",
+                category: "basicas",
+                timestamp: "3:16",
+                formula: "A = k \\cdot I_n = \\operatorname{diag}(k, k, \\dots, k)",
+                description: "Matriz diagonal donde todos los elementos de la diagonal principal tienen el mismo valor constante $k$. Multiplicar por ella equivale a escalar todo el espacio homogéneamente.",
+                applications: "Escalado isotrópico en gráficos por ordenador, transformaciones de homotecia.",
+                preset: [[4, 0, 0], [0, 4, 0], [0, 0, 4]]
+            },
+            {
+                id: "diagonal",
+                name: "Matriz Diagonal / Antidiagonal",
+                category: "basicas",
+                timestamp: "4:24",
+                formula: "A = \\operatorname{diag}(d_1, d_2, \\dots, d_n), \\quad a_{ij} = 0 \\text{ si } i \\neq j",
+                description: "Matriz cuyos elementos fuera de la diagonal principal son cero. Sus determinantes son simplemente el producto de la diagonal, y sus valores propios son los propios elementos diagonales.",
+                applications: "Descomposición espectral, resolución simplificada de potencias matriciales $A^k$, física cuántica.",
+                preset: [[3, 0, 0], [0, -2, 0], [0, 0, 5]]
+            },
+            {
+                id: "constante",
+                name: "Matriz Constante",
+                category: "basicas",
+                timestamp: "5:55",
+                formula: "a_{ij} = c \\quad \\forall i,j",
+                description: "Todas las entradas de la matriz son idénticas al número $c$. Tiene rango 1 (para $c \\neq 0$) porque todas las filas son copias de la primera.",
+                applications: "Filtros de promediado uniforme en procesamiento de imágenes (blur), modelos simplificados de interacciones.",
+                preset: [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
+            },
+            {
+                id: "triangular",
+                name: "Matriz Triangular (Superior / Inferior)",
+                category: "estructura",
+                timestamp: "6:10",
+                formula: "\\text{Superior: } a_{ij}=0 \\text{ para } i>j; \\quad \\text{Inferior: } a_{ij}=0 \\text{ para } i<j",
+                description: "Matriz cuadrada donde todas las entradas por debajo (o por encima) de la diagonal principal son cero. Permite resolver sistemas lineales por sustitución directa rápida en $O(n^2)$.",
+                applications: "Descomposición LU, eliminación Gaussiana, métodos numéricos computacionales.",
+                preset: [[2, 4, 1], [0, 3, -1], [0, 0, 5]]
+            },
+            {
+                id: "tridiagonal",
+                name: "Matriz Tridiagonal / Banda",
+                category: "estructura",
+                timestamp: "7:30",
+                formula: "a_{ij} = 0 \\quad \\text{si } |i - j| > 1",
+                description: "Solo la diagonal principal y las dos subdiagonales adyacentes contienen valores distintos de cero. Es un caso particular de las matrices en banda.",
+                applications: "Algoritmo de Thomas para ecuaciones diferenciales, splines cúbicos, métodos de elementos finitos 1D.",
+                preset: [[4, 1, 0], [2, 3, 2], [0, 1, 5]]
+            },
+            {
+                id: "dispersa",
+                name: "Matriz Dispersa (Sparse)",
+                category: "estructura",
+                timestamp: "9:51",
+                formula: "\\text{Porcentaje de ceros } \\gg \\text{Porcentaje de elementos no nulos}",
+                description: "Matriz de gran tamaño donde la inmensa mayoría de los elementos son cero. Se almacenan eficientemente en memoria mediante listas dispersas (CSR, COO).",
+                applications: "Análisis de redes sociales (grafos), motores de búsqueda (PageRank de Google), simulaciones numéricas masivas.",
+                preset: [[1, 0, 0], [0, 0, 2], [0, 0, 0]]
+            },
+            {
+                id: "regular_singular",
+                name: "Matriz Regular / Singular",
+                category: "operacional",
+                timestamp: "11:15",
+                formula: "\\text{Regular: } \\det(A) \\neq 0 \\iff \\exists A^{-1}; \\quad \\text{Singular: } \\det(A) = 0",
+                description: "Una matriz es regular (invertible) si sus filas/columnas son linealmente independientes y transforman el espacio sin colapsar dimensiones. Si colapsa el espacio a una dimensión menor, es singular.",
+                applications: "Solubilidad única de sistemas de ecuaciones $Ax=b$.",
+                preset: [[1, 2, 3], [0, 1, 4], [5, 6, 0]]
+            },
+            {
+                id: "simetrica",
+                name: "Matriz Simétrica",
+                category: "simetria",
+                timestamp: "12:22",
+                formula: "A^T = A \\iff a_{ij} = a_{ji}",
+                description: "Matriz cuadrada reflejada idénticamente respecto a su diagonal principal. Siempre es diagonalizable por un cambio de base ortogonal y todos sus autovalores son reales.",
+                applications: "Matriz de covarianza en estadística, matrices de rigidez en ingeniería, optimización cuadrática.",
+                preset: [[2, 1, 3], [1, 5, 4], [3, 4, 6]]
+            },
+            {
+                id: "antisimetrica",
+                name: "Matriz Antisimétrica (Skew-Symmetric)",
+                category: "simetria",
+                timestamp: "12:22",
+                formula: "A^T = -A \\implies a_{ii} = 0, \\quad a_{ij} = -a_{ji}",
+                description: "Al transponer la matriz, se obtiene el opuesto de la matriz original. Su diagonal principal obligatoriamente son ceros y sus autovalores son imaginarios puros o cero.",
+                applications: "Producto vectorial representado en forma matricial, mecánica analítica, rotaciones infinitesimales.",
+                preset: [[0, 2, -3], [-2, 0, 1], [3, -1, 0]]
+            },
+            {
+                id: "persimetrica",
+                name: "Matriz Persimétrica / Bisimétrica",
+                category: "simetria",
+                timestamp: "13:30",
+                formula: "a_{i,j} = a_{n-j+1, n-i+1} \\quad (\\text{Simetría en la antidiagonal})",
+                description: "Es simétrica respecto a la diagonal secundaria (antidiagonal). Si además es simétrica respecto a la diagonal principal, se llama Bisimétrica.",
+                applications: "Procesamiento de señales, redes de antenas, teoría de control.",
+                preset: [[1, 2, 3], [4, 5, 2], [6, 4, 1]]
+            },
+            {
+                id: "ortogonal",
+                name: "Matriz Ortogonal",
+                category: "operacional",
+                timestamp: "14:50",
+                formula: "A^T A = A A^T = I_n \\iff A^{-1} = A^T",
+                description: "Sus columnas (y filas) forman un conjunto ortonormal. Preserva las longitudes de los vectores y los ángulos entre ellos (isometría). Su determinante es siempre $+1$ o $-1$.",
+                applications: "Rotaciones y reflexiones en 2D/3D (gráficos por ordenador, robótica, QR decomposition).",
+                preset: [[0, -1, 0], [1, 0, 0], [0, 0, 1]]
+            },
+            {
+                id: "definida_positiva",
+                name: "Matriz Definida Positiva",
+                category: "especiales",
+                timestamp: "17:55",
+                formula: "x^T A x > 0 \\quad \\forall x \\neq 0 \\iff \\lambda_i > 0",
+                description: "Matriz simétrica cuyos autovalores son estrictamente positivos. Define una forma cuadrática estricta con un único mínimo global (en forma de cuenco o paraboloide).",
+                applications: "Optimización convexa, método de mínimos cuadrados, estimación de probabilidad multivariante.",
+                preset: [[2, -1, 0], [-1, 2, -1], [0, -1, 2]]
+            },
+            {
+                id: "idempotente",
+                name: "Matriz Idempotente",
+                category: "operacional",
+                timestamp: "21:37",
+                formula: "A^2 = A",
+                description: "Aplicar la transformación dos o más veces produce exactamente el mismo resultado que aplicarla una sola vez. Sus autovalores solo pueden ser 0 o 1.",
+                applications: "Proyecciones ortogonales en subespacios, regresión lineal (matriz sombrero / hat matrix).",
+                preset: [[1, 0, 0], [0, 1, 0], [0, 0, 0]]
+            },
+            {
+                id: "nilpotente",
+                name: "Matriz Nilpotente",
+                category: "operacional",
+                timestamp: "21:37",
+                formula: "A^k = O \\quad \\text{para algún entero } k \\ge 1",
+                description: "Al elevar la matriz a una potencia suficiente $k$, se convierte en la matriz nula. Todos sus autovalores son 0 y su traza/determinante son 0.",
+                applications: "Forma normal de Jordan, grafos acíclicos dirigidos (DAGs), derivadas de orden superior.",
+                preset: [[0, 1, 2], [0, 0, 3], [0, 0, 0]]
+            },
+            {
+                id: "involutiva",
+                name: "Matriz Involutiva",
+                category: "operacional",
+                timestamp: "21:37",
+                formula: "A^2 = I_n \\iff A^{-1} = A",
+                description: "Una matriz que es su propia inversa. Aplicar la transformación dos veces devuelve los puntos a su estado original inicial.",
+                applications: "Reflexiones respecto a hiperplanos, operadores de paridad en física cuántica.",
+                preset: [[1, 0, 0], [0, -1, 0], [0, 0, 1]]
+            },
+            {
+                id: "permutacion",
+                name: "Matriz de Permutación",
+                category: "especiales",
+                timestamp: "24:46",
+                formula: "P_{\\pi} \\quad (\\text{Exactamente un 1 en cada fila y columna, 0s en el resto})",
+                description: "Al multiplicar una matriz por una matriz de permutación, se reordenan (permutan) las filas o las columnas. Es un caso especial de matriz ortogonal.",
+                applications: "Algoritmos de ordenamiento, eliminación Gaussiana con pivoteo parcial (PLU).",
+                preset: [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+            },
+            {
+                id: "circulante",
+                name: "Matriz Circulante",
+                category: "especiales",
+                timestamp: "26:05",
+                formula: "c_{ij} = c_{(j-i) \\pmod n}",
+                description: "Cada fila es un desplazamiento circular a la derecha de la fila anterior. Es un caso particular de matriz de Toeplitz y se diagonaliza completamente mediante la Transformada Discreta de Fourier (DFT).",
+                applications: "Procesamiento digital de señales (DSP), convoluciones circulares, criptografía.",
+                preset: [[1, 2, 3], [3, 1, 2], [2, 3, 1]]
+            },
+            {
+                id: "toeplitz",
+                name: "Matriz de Toeplitz / Hankel",
+                category: "especiales",
+                timestamp: "26:57",
+                formula: "\\text{Toeplitz: } a_{ij} = a_{i+1, j+1}; \\quad \\text{Hankel: } a_{ij} = a_{i-1, j+1}",
+                description: "En Toeplitz, los elementos a lo largo de cada diagonal paralela a la principal son constantes. En Hankel, son constantes a lo largo de las antidiagonales.",
+                applications: "Ecuaciones de autocovarianza, procesamiento de voz, filtros ARMA, resolución de sistemas en $O(n^2)$.",
+                preset: [[1, 2, 3], [4, 1, 2], [5, 4, 1]]
+            },
+            {
+                id: "vandermonde",
+                name: "Matriz de Vandermonde",
+                category: "especiales",
+                timestamp: "27:46",
+                formula: "V_{ij} = x_i^{j-1} = \\begin{pmatrix} 1 & x_1 & x_1^2 \\\\ 1 & x_2 & x_2^2 \\\\ 1 & x_3 & x_3^2 \\end{pmatrix}",
+                description: "Las entradas de cada fila son las potencias consecutivas de un término $x_i$. Su determinante es el producto de las diferencias $(x_j - x_i)$.",
+                applications: "Interpolación polinómica de Lagrange, ajuste de curvas, códigos de corrección de errores (Reed-Solomon).",
+                preset: [[1, 1, 1], [1, 2, 4], [1, 3, 9]]
+            },
+            {
+                id: "markov",
+                name: "Matriz Estocástica / Markov",
+                category: "especiales",
+                timestamp: "28:26",
+                formula: "a_{ij} \\ge 0 \\quad \\text{y} \\quad \\sum_{j=1}^n a_{ij} = 1 \\quad \\forall i",
+                description: "Matriz de probabilidades de transición donde cada celda es $\\ge 0$ y la suma de cada fila (o columna) es igual a 1. Posee siempre al menos un autovalor $\\lambda = 1$.",
+                applications: "Cadenas de Markov, simulación de estados de tiempo, predicción meteorológica, economía.",
+                preset: [[0.5, 0.3, 0.2], [0.1, 0.8, 0.1], [0.4, 0.4, 0.2]]
+            },
+            {
+                id: "hilbert",
+                name: "Matriz de Hilbert",
+                category: "especiales",
+                timestamp: "29:25",
+                formula: "H_{ij} = \\frac{1}{i + j - 1}",
+                description: "Matriz simétrica extremadamente mal condicionada. Su número de condición crece exponencialmente con el tamaño $n$, siendo la pesadilla de la precisión numérica.",
+                applications: "Benchmark de estabilidad numérica en software de cálculo, aproximación polinómica de mínimos cuadrados.",
+                preset: [[1, 1/2, 1/3], [1/2, 1/3, 1/4], [1/3, 1/4, 1/5]]
+            },
+            {
+                id: "hadamard",
+                name: "Matriz de Hadamard",
+                category: "especiales",
+                timestamp: "31:36",
+                formula: "H \\in \\{-1, +1\\}^{n \\times n}, \\quad H H^T = n I_n",
+                description: "Matriz cuadrada cuyas entradas son todas $+1$ o $-1$ y sus filas son mutuamente ortogonales. Alcanza el límite máximo del determinante de Hadamard.",
+                applications: "Telecomunicaciones (CDMA), compresión de señales, códigos de corrección de errores, física cuántica.",
+                preset: [[1, 1, 1, 1], [1, -1, 1, -1], [1, 1, -1, -1], [1, -1, -1, 1]]
+            }
+        ];
+
+        // --- ESTADO GLOBAL DE LA APLICACIÓN ---
+        let currentMatrix = [
+            [2, 1, 0],
+            [1, 3, 1],
+            [0, 1, 2]
+        ];
+        let geoMatrix = [1, 0, 0, 1]; // a11, a12, a21, a22
+
+        // --- INICIALIZACIÓN ---
+        window.onload = function() {
+            renderBestiaryGrid(BESTIARY_DATA);
+            populatePresetSelect();
+            renderInteractiveMatrixEditor();
+            updateCalculations();
+            initGeoCanvas();
+
+            // Render LaTeX formulas
+            if (window.renderMathInElement) {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+        };
+
+        // --- CAMBIO DE PESTAÑAS ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                activeBtn.classList.remove('text-slate-400');
+            }
+
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            const activeSec = document.getElementById(`view-${tabId}`);
+            if (activeSec) activeSec.classList.remove('hidden');
+
+            if (tabId === 'geometria') {
+                setTimeout(updateGeoCanvas, 50);
+            }
+        }
+
+        // --- RENDERIZAR BESTIARIO ---
+        function renderBestiaryGrid(data) {
+            const grid = document.getElementById('bestiary-grid');
+            grid.innerHTML = '';
+
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "glass-panel p-5 rounded-2xl space-y-4 hover:border-blue-500/50 transition-all hover:-translate-y-1 group flex flex-col justify-between";
+
+                const categoryLabel = {
+                    'basicas': 'Básica',
+                    'estructura': 'Estructura',
+                    'simetria': 'Simetría',
+                    'operacional': 'Operacional',
+                    'especiales': 'Especial / Aplicada'
+                }[item.category] || 'General';
+
+                card.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-blue-400 border border-slate-700">${categoryLabel}</span>
+                            <span class="text-[11px] text-slate-500 font-mono"><i class="fa-regular fa-clock mr-1"></i>${item.timestamp}</span>
+                        </div>
+
+                        <h3 class="text-base font-bold text-slate-100 group-hover:text-blue-400 transition-colors">${item.name}</h3>
+
+                        <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800/80 font-mono text-xs text-blue-300 overflow-x-auto">
+                            $${item.formula}$
+                        </div>
+
+                        <p class="text-xs text-slate-400 line-clamp-3 leading-relaxed">${item.description}</p>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800/60 flex items-center justify-between gap-2 mt-4">
+                        <button onclick="openModal('${item.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-info text-blue-400"></i> Detalle
+                        </button>
+                        <button onclick="loadBestiaryItemToLab('${item.id}')" class="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white text-xs font-semibold rounded-lg transition-all border border-blue-500/30 flex items-center gap-1.5">
+                            <i class="fa-solid fa-flask"></i> Probar en Lab
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            if (window.renderMathInElement) {
+                renderMathInElement(grid, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+        }
+
+        // --- FILTROS DEL BESTIARIO ---
+        function filterBestiary() {
+            const query = document.getElementById('search-bestiario').value.toLowerCase();
+            const filtered = BESTIARY_DATA.filter(item => 
+                item.name.toLowerCase().includes(query) ||
+                item.description.toLowerCase().includes(query) ||
+                item.category.toLowerCase().includes(query)
+            );
+            renderBestiaryGrid(filtered);
+        }
+
+        function filterCategory(cat) {
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-slate-800', 'text-slate-300');
+            });
+            event.target.classList.add('bg-blue-600', 'text-white');
+            event.target.classList.remove('bg-slate-800', 'text-slate-300');
+
+            if (cat === 'all') {
+                renderBestiaryGrid(BESTIARY_DATA);
+            } else {
+                const filtered = BESTIARY_DATA.filter(item => item.category === cat);
+                renderBestiaryGrid(filtered);
+            }
+        }
+
+        // --- MODAL DE DETALLES ---
+        function openModal(id) {
+            const item = BESTIARY_DATA.find(x => x.id === id);
+            if (!item) return;
+
+            document.getElementById('modal-title').innerText = item.name;
+            document.getElementById('modal-category-badge').innerText = item.category.toUpperCase();
+            document.getElementById('modal-timestamp').innerText = `Minuto en vídeo: ${item.timestamp}`;
+            document.getElementById('modal-formula').innerText = `$${item.formula}$`;
+            document.getElementById('modal-description').innerText = item.description;
+            document.getElementById('modal-applications').innerText = item.applications;
+
+            document.getElementById('modal-load-btn').onclick = function() {
+                closeModal();
+                loadBestiaryItemToLab(id);
+            };
+
+            const modal = document.getElementById('bestiary-modal');
+            modal.classList.remove('hidden');
+
+            if (window.renderMathInElement) {
+                renderMathInElement(modal, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('bestiary-modal').classList.add('hidden');
+        }
+
+        function loadBestiaryItemToLab(id) {
+            const item = BESTIARY_DATA.find(x => x.id === id);
+            if (!item) return;
+
+            if (item.preset) {
+                currentMatrix = JSON.parse(JSON.stringify(item.preset));
+                const rows = currentMatrix.length;
+                const cols = currentMatrix[0].length;
+                
+                const select = document.getElementById('matrix-size-select');
+                const sizeKey = `${rows}x${cols}`;
+                if (select.querySelector(`option[value="${sizeKey}"]`)) {
+                    select.value = sizeKey;
+                }
+            }
+            switchTab('laboratorio');
+            renderInteractiveMatrixEditor();
+            updateCalculations();
+        }
+
+        // --- EDITOR Y CALCULADORA DEL LABORATORIO ---
+        function populatePresetSelect() {
+            const select = document.getElementById('preset-select');
+            select.innerHTML = '<option value="">-- Seleccionar Preset del Bestiario --</option>';
+            BESTIARY_DATA.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.innerText = item.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function loadPresetMatrix(id) {
+            if (!id) return;
+            loadBestiaryItemToLab(id);
+        }
+
+        function changeMatrixSize(sizeStr) {
+            const [r, c] = sizeStr.split('x').map(Number);
+            const newMat = [];
+            for (let i = 0; i < r; i++) {
+                const row = [];
+                for (let j = 0; j < c; j++) {
+                    if (currentMatrix[i] && currentMatrix[i][j] !== undefined) {
+                        row.push(currentMatrix[i][j]);
+                    } else {
+                        row.push(i === j ? 1 : 0);
+                    }
+                }
+                newMat.push(row);
+            }
+            currentMatrix = newMat;
+            renderInteractiveMatrixEditor();
+            updateCalculations();
+        }
+
+        function renderInteractiveMatrixEditor() {
+            const container = document.getElementById('interactive-matrix-container');
+            container.innerHTML = '';
+
+            const rows = currentMatrix.length;
+            const cols = currentMatrix[0].length;
+
+            const gridDiv = document.createElement('div');
+            gridDiv.className = `grid gap-2 justify-center`;
+            gridDiv.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.step = 'any';
+                    input.value = currentMatrix[i][j];
+                    input.className = "w-12 h-10 bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg text-center font-mono text-sm text-slate-100 font-bold focus:outline-none transition-colors";
+                    input.oninput = (e) => {
+                        currentMatrix[i][j] = parseFloat(e.target.value) || 0;
+                        updateCalculations();
+                    };
+                    gridDiv.appendChild(input);
+                }
+            }
+            container.appendChild(gridDiv);
+            renderHeatmap();
+        }
+
+        function renderHeatmap() {
+            const container = document.getElementById('matrix-heatmap');
+            container.innerHTML = '';
+
+            const rows = currentMatrix.length;
+            const cols = currentMatrix[0].length;
+
+            container.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+            let zeroCount = 0;
+            let total = rows * cols;
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const val = currentMatrix[i][j];
+                    if (Math.abs(val) < 1e-9) zeroCount++;
+
+                    const box = document.createElement('div');
+                    box.className = "w-7 h-7 rounded flex items-center justify-center text-[10px] font-mono font-bold transition-all";
+
+                    if (Math.abs(val) < 1e-9) {
+                        box.className += " bg-slate-800/40 text-slate-600 border border-slate-800";
+                        box.innerText = "0";
+                    } else if (i === j) {
+                        box.className += " bg-blue-600/40 text-blue-300 border border-blue-500/50";
+                        box.innerText = Math.round(val * 10) / 10;
+                    } else {
+                        box.className += " bg-indigo-600/30 text-indigo-200 border border-indigo-500/30";
+                        box.innerText = Math.round(val * 10) / 10;
+                    }
+                    container.appendChild(box);
+                }
+            }
+
+            const nonZeros = total - zeroCount;
+            const density = Math.round((nonZeros / total) * 100);
+            document.getElementById('matrix-density-tag').innerText = `Densidad: ${density}% (${nonZeros}/${total} no nulos)`;
+        }
+
+        function randomizeMatrix() {
+            const rows = currentMatrix.length;
+            const cols = currentMatrix[0].length;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    currentMatrix[i][j] = Math.floor(Math.random() * 11) - 5;
+                }
+            }
+            renderInteractiveMatrixEditor();
+            updateCalculations();
+        }
+
+        function clearMatrix() {
+            const rows = currentMatrix.length;
+            const cols = currentMatrix[0].length;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    currentMatrix[i][j] = 0;
+                }
+            }
+            renderInteractiveMatrixEditor();
+            updateCalculations();
+        }
+
+        function setIdentityMatrix() {
+            const rows = currentMatrix.length;
+            const cols = currentMatrix[0].length;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    currentMatrix[i][j] = (i === j) ? 1 : 0;
+                }
+            }
+            renderInteractiveMatrixEditor();
+            updateCalculations();
+        }
+
+        // --- ÁLGEBRA MATRICIAL & INFORMES ---
+        function updateCalculations() {
+            renderHeatmap();
+
+            const isSquare = currentMatrix.length === currentMatrix[0].length;
+            const n = currentMatrix.length;
+
+            // Determinante
+            let det = isSquare ? computeDeterminant(currentMatrix) : "N/A (No Cuadrada)";
+            document.getElementById('calc-det').innerText = typeof det === 'number' ? Math.round(det * 1000) / 1000 : det;
+
+            // Traza
+            let trace = isSquare ? computeTrace(currentMatrix) : "N/A";
+            document.getElementById('calc-trace').innerText = typeof trace === 'number' ? Math.round(trace * 1000) / 1000 : trace;
+
+            // Rango aproximado
+            let rank = estimateRank(currentMatrix);
+            document.getElementById('calc-rank').innerText = rank;
+
+            // Regularidad
+            const regTag = document.getElementById('calc-regularity');
+            if (!isSquare) {
+                regTag.innerText = "Rectangular";
+                regTag.className = "text-xs font-bold text-slate-400 mt-2 block";
+            } else if (Math.abs(det) > 1e-7) {
+                regTag.innerText = "Regular (Invertible)";
+                regTag.className = "text-xs font-bold text-emerald-400 mt-2 block";
+            } else {
+                regTag.innerText = "Singular";
+                regTag.className = "text-xs font-bold text-rose-400 mt-2 block";
+            }
+
+            // Transpuesta
+            const transp = transposeMatrix(currentMatrix);
+            document.getElementById('calc-transpose-display').innerHTML = `$${matrixToLatex(transp)}$`;
+
+            // Inversa
+            if (isSquare && Math.abs(det) > 1e-7) {
+                const inv = invertMatrix(currentMatrix);
+                document.getElementById('calc-inverse-display').innerHTML = inv ? `$${matrixToLatex(inv)}$` : '<span class="text-rose-400">Error al invertir</span>';
+            } else {
+                document.getElementById('calc-inverse-display').innerHTML = '<span class="text-slate-500">No Invertible (Singular)</span>';
+            }
+
+            // Eigenvalores (2x2)
+            if (isSquare && n === 2) {
+                const a = currentMatrix[0][0], b = currentMatrix[0][1];
+                const c = currentMatrix[1][0], d = currentMatrix[1][1];
+                const tr = a + d;
+                const dt = a * d - b * c;
+                const disc = tr * tr - 4 * dt;
+                if (disc >= 0) {
+                    const l1 = Math.round(((tr + Math.sqrt(disc)) / 2) * 100) / 100;
+                    const l2 = Math.round(((tr - Math.sqrt(disc)) / 2) * 100) / 100;
+                    document.getElementById('calc-eigen-display').innerHTML = `$\\lambda_1 = ${l1}, \\quad \\lambda_2 = ${l2}$`;
+                } else {
+                    const real = Math.round((tr / 2) * 100) / 100;
+                    const imag = Math.round((Math.sqrt(-disc) / 2) * 100) / 100;
+                    document.getElementById('calc-eigen-display').innerHTML = `$\\lambda_{1,2} = ${real} \\pm ${imag}i$`;
+                }
+            } else {
+                document.getElementById('calc-eigen-display').innerHTML = '<span class="text-slate-500">Soporte directo para $2\\times 2$</span>';
+            }
+
+            // Detectar clasificaciones coincidentes
+            detectMatchingBestiaryTypes();
+
+            if (window.renderMathInElement) {
+                renderMathInElement(document.getElementById('view-laboratorio'), {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+        }
+
+        function detectMatchingBestiaryTypes() {
+            const container = document.getElementById('detected-types-tags');
+            container.innerHTML = '';
+
+            const matches = checkAllMatrixProperties(currentMatrix);
+
+            if (matches.length === 0) {
+                container.innerHTML = '<span class="text-xs text-slate-500 italic">Matriz genérica sin simetrías especiales destacadas.</span>';
+                return;
+            }
+
+            matches.forEach(m => {
+                const tag = document.createElement('span');
+                tag.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-600/30 text-blue-300 border border-blue-500/40 flex items-center gap-1.5";
+                tag.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> ${m}`;
+                container.appendChild(tag);
+            });
+        }
+
+        function checkAllMatrixProperties(mat) {
+            const rows = mat.length;
+            const cols = mat[0].length;
+            const isSquare = rows === cols;
+            const props = [];
+
+            if (!isSquare) props.push("Rectangular");
+            if (isSquare) props.push("Cuadrada");
+
+            // Nula
+            let isNull = true;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    if (Math.abs(mat[i][j]) > 1e-7) isNull = false;
+                }
+            }
+            if (isNull) props.push("Matriz Nula");
+
+            if (isSquare) {
+                // Identidad
+                let isId = true;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (i === j && Math.abs(mat[i][j] - 1) > 1e-7) isId = false;
+                        if (i !== j && Math.abs(mat[i][j]) > 1e-7) isId = false;
+                    }
+                }
+                if (isId) props.push("Matriz Identidad");
+
+                // Diagonal
+                let isDiag = true;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (i !== j && Math.abs(mat[i][j]) > 1e-7) isDiag = false;
+                    }
+                }
+                if (isDiag && !isId) props.push("Diagonal");
+
+                // Simétrica
+                let isSym = true;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (Math.abs(mat[i][j] - mat[j][i]) > 1e-7) isSym = false;
+                    }
+                }
+                if (isSym) props.push("Simétrica");
+
+                // Antisimétrica
+                let isAntiSym = true;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (Math.abs(mat[i][j] + mat[j][i]) > 1e-7) isAntiSym = false;
+                    }
+                }
+                if (isAntiSym) props.push("Antisimétrica");
+
+                // Triangular Superior / Inferior
+                let isUpper = true, isLower = true;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (i > j && Math.abs(mat[i][j]) > 1e-7) isUpper = false;
+                        if (i < j && Math.abs(mat[i][j]) > 1e-7) isLower = false;
+                    }
+                }
+                if (isUpper && !isDiag) props.push("Triangular Superior");
+                if (isLower && !isDiag) props.push("Triangular Inferior");
+
+                // Idempotente (A^2 = A)
+                const sq = multiplyMatrices(mat, mat);
+                let isIdem = true;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (Math.abs(sq[i][j] - mat[i][j]) > 1e-5) isIdem = false;
+                    }
+                }
+                if (isIdem) props.push("Idempotente ($A^2 = A$)");
+
+                // Involutiva (A^2 = I)
+                let isInvol = true;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const expected = (i === j) ? 1 : 0;
+                        if (Math.abs(sq[i][j] - expected) > 1e-5) isInvol = false;
+                    }
+                }
+                if (isInvol) props.push("Involutiva ($A^2 = I$)");
+
+                // Ortogonal (A^T A = I)
+                const t = transposeMatrix(mat);
+                const prodT = multiplyMatrices(t, mat);
+                let isOrt = true;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const expected = (i === j) ? 1 : 0;
+                        if (Math.abs(prodT[i][j] - expected) > 1e-5) isOrt = false;
+                    }
+                }
+                if (isOrt) props.push("Ortogonal ($A^T A = I$)");
+            }
+
+            // Estocástica por filas
+            let isMarkov = true;
+            for (let i = 0; i < rows; i++) {
+                let sum = 0;
+                for (let j = 0; j < cols; j++) {
+                    if (mat[i][j] < -1e-7) isMarkov = false;
+                    sum += mat[i][j];
+                }
+                if (Math.abs(sum - 1) > 1e-5) isMarkov = false;
+            }
+            if (isMarkov) props.push("Estocástica / Markov");
+
+            return props;
+        }
+
+        // --- FUNCIONES MATEMÁTICAS UTILERÍA ---
+        function computeDeterminant(m) {
+            const n = m.length;
+            if (n === 1) return m[0][0];
+            if (n === 2) return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+            if (n === 3) {
+                return m[0][0]*(m[1][1]*m[2][2] - m[1][2]*m[2][1])
+                     - m[0][1]*(m[1][0]*m[2][2] - m[1][2]*m[2][0])
+                     + m[0][2]*(m[1][0]*m[2][1] - m[1][1]*m[2][0]);
+            }
+            // Algoritmo LU / Gauss para dimensiones mayores
+            let det = 1;
+            let mat = JSON.parse(JSON.stringify(m));
+            for (let i = 0; i < n; i++) {
+                let pivot = i;
+                for (let j = i + 1; j < n; j++) {
+                    if (Math.abs(mat[j][i]) > Math.abs(mat[pivot][i])) pivot = j;
+                }
+                if (Math.abs(mat[pivot][i]) < 1e-9) return 0;
+                if (pivot !== i) {
+                    [mat[i], mat[pivot]] = [mat[pivot], mat[i]];
+                    det *= -1;
+                }
+                det *= mat[i][i];
+                for (let j = i + 1; j < n; j++) {
+                    let factor = mat[j][i] / mat[i][i];
+                    for (let k = i + 1; k < n; k++) {
+                        mat[j][k] -= factor * mat[i][k];
+                    }
+                }
+            }
+            return det;
+        }
+
+        function computeTrace(m) {
+            let sum = 0;
+            for (let i = 0; i < m.length; i++) sum += m[i][i];
+            return sum;
+        }
+
+        function transposeMatrix(m) {
+            const r = m.length, c = m[0].length;
+            const res = [];
+            for (let j = 0; j < c; j++) {
+                const row = [];
+                for (let i = 0; i < r; i++) row.push(m[i][j]);
+                res.push(row);
+            }
+            return res;
+        }
+
+        function multiplyMatrices(A, B) {
+            const rA = A.length, cA = A[0].length;
+            const rB = B.length, cB = B[0].length;
+            if (cA !== rB) return null;
+            const res = [];
+            for (let i = 0; i < rA; i++) {
+                const row = [];
+                for (let j = 0; j < cB; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < cA; k++) sum += A[i][k] * B[k][j];
+                    row.push(sum);
+                }
+                res.push(row);
+            }
+            return res;
+        }
+
+        function invertMatrix(m) {
+            const n = m.length;
+            let A = JSON.parse(JSON.stringify(m));
+            let I = [];
+            for (let i = 0; i < n; i++) {
+                I[i] = [];
+                for (let j = 0; j < n; j++) I[i][j] = (i === j) ? 1 : 0;
+            }
+
+            for (let i = 0; i < n; i++) {
+                let pivot = A[i][i];
+                if (Math.abs(pivot) < 1e-9) {
+                    let swapRow = -1;
+                    for (let k = i + 1; k < n; k++) {
+                        if (Math.abs(A[k][i]) > 1e-9) { swapRow = k; break; }
+                    }
+                    if (swapRow === -1) return null;
+                    [A[i], A[swapRow]] = [A[swapRow], A[i]];
+                    [I[i], I[swapRow]] = [I[swapRow], I[i]];
+                    pivot = A[i][i];
+                }
+
+                for (let j = 0; j < n; j++) {
+                    A[i][j] /= pivot;
+                    I[i][j] /= pivot;
+                }
+
+                for (let k = 0; k < n; k++) {
+                    if (k !== i) {
+                        let factor = A[k][i];
+                        for (let j = 0; j < n; j++) {
+                            A[k][j] -= factor * A[i][j];
+                            I[k][j] -= factor * I[i][j];
+                        }
+                    }
+                }
+            }
+            return I;
+        }
+
+        function estimateRank(m) {
+            let mat = JSON.parse(JSON.stringify(m));
+            let rows = mat.length, cols = mat[0].length;
+            let rank = 0;
+            let rowSelected = new Array(rows).fill(false);
+
+            for (let i = 0; i < cols; i++) {
+                let j;
+                for (j = 0; j < rows; j++) {
+                    if (!rowSelected[j] && Math.abs(mat[j][i]) > 1e-7) break;
+                }
+                if (j < rows) {
+                    rank++;
+                    rowSelected[j] = true;
+                    for (let p = i + 1; p < cols; p++) mat[j][p] /= mat[j][i];
+                    for (let k = 0; k < rows; k++) {
+                        if (k !== j && Math.abs(mat[k][i]) > 1e-7) {
+                            for (let p = i + 1; p < cols; p++) {
+                                mat[k][p] -= mat[k][i] * mat[j][p];
+                            }
+                        }
+                    }
+                }
+            }
+            return rank;
+        }
+
+        function matrixToLatex(m) {
+            let str = "\\begin{pmatrix}";
+            for (let i = 0; i < m.length; i++) {
+                const rowStr = m[i].map(x => Math.round(x * 100) / 100).join(" & ");
+                str += rowStr + (i < m.length - 1 ? " \\\\ " : "");
+            }
+            str += "\\end{pmatrix}";
+            return str;
+        }
+
+        // --- VISUALIZADOR GEOMÉTRICO 2D ---
+        let geoCanvas, geoCtx;
+
+        function initGeoCanvas() {
+            geoCanvas = document.getElementById('geoCanvas');
+            if (!geoCanvas) return;
+            geoCtx = geoCanvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function resizeCanvas() {
+            if (!geoCanvas) return;
+            const rect = geoCanvas.parentElement.getBoundingClientRect();
+            geoCanvas.width = rect.width;
+            geoCanvas.height = rect.height;
+            updateGeoCanvas();
+        }
+
+        function setGeoPreset(a11, a12, a21, a22) {
+            document.getElementById('geo-a11').value = a11;
+            document.getElementById('geo-a12').value = a12;
+            document.getElementById('geo-a21').value = a21;
+            document.getElementById('geo-a22').value = a22;
+            document.getElementById('geo-anim-slider').value = 1;
+            updateGeoCanvas();
+        }
+
+        function updateGeoCanvas() {
+            if (!geoCtx) return;
+
+            const target_a11 = parseFloat(document.getElementById('geo-a11').value) || 0;
+            const target_a12 = parseFloat(document.getElementById('geo-a12').value) || 0;
+            const target_a21 = parseFloat(document.getElementById('geo-a21').value) || 0;
+            const target_a22 = parseFloat(document.getElementById('geo-a22').value) || 0;
+
+            const t = parseFloat(document.getElementById('geo-anim-slider').value);
+
+            // Interpolación entre I y A
+            const a11 = 1 + (target_a11 - 1) * t;
+            const a12 = 0 + target_a12 * t;
+            const a21 = 0 + target_a21 * t;
+            const a22 = 1 + (target_a22 - 1) * t;
+
+            const det = target_a11 * target_a22 - target_a12 * target_a21;
+            document.getElementById('geo-det-val').innerText = Math.round(det * 100) / 100;
+            const orientTag = document.getElementById('geo-orient-val');
+            if (det > 0) {
+                orientTag.innerText = "Conservada (+)";
+                orientTag.className = "font-bold text-emerald-400";
+            } else if (det < 0) {
+                orientTag.innerText = "Invertida (-)";
+                orientTag.className = "font-bold text-amber-400";
+            } else {
+                orientTag.innerText = "Colapsada (0)";
+                orientTag.className = "font-bold text-rose-400";
+            }
+
+            const w = geoCanvas.width;
+            const h = geoCanvas.height;
+            const center = { x: w / 2, y: h / 2 };
+            const scale = w / 8; // 8 unidades visibles
+
+            geoCtx.clearRect(0, 0, w, h);
+
+            // Dibujar fondo de cuadrícula original tenue
+            geoCtx.strokeStyle = 'rgba(51, 65, 85, 0.3)';
+            geoCtx.lineWidth = 1;
+            for (let x = -5; x <= 5; x++) {
+                geoCtx.beginPath();
+                geoCtx.moveTo(center.x + x * scale, 0);
+                geoCtx.lineTo(center.x + x * scale, h);
+                geoCtx.stroke();
+
+                geoCtx.beginPath();
+                geoCtx.moveTo(0, center.y - x * scale);
+                geoCtx.lineTo(w, center.y - x * scale);
+                geoCtx.stroke();
+            }
+
+            // Dibujar cuadrícula transformada
+            geoCtx.strokeStyle = 'rgba(59, 130, 246, 0.25)';
+            geoCtx.lineWidth = 1.5;
+
+            for (let gx = -5; gx <= 5; gx++) {
+                // Líneas verticales transformadas
+                const p1 = transformPoint(gx, -5, a11, a12, a21, a22, center, scale);
+                const p2 = transformPoint(gx, 5, a11, a12, a21, a22, center, scale);
+                geoCtx.beginPath();
+                geoCtx.moveTo(p1.x, p1.y);
+                geoCtx.lineTo(p2.x, p2.y);
+                geoCtx.stroke();
+            }
+
+            for (let gy = -5; gy <= 5; gy++) {
+                // Líneas horizontales transformadas
+                const p1 = transformPoint(-5, gy, a11, a12, a21, a22, center, scale);
+                const p2 = transformPoint(5, gy, a11, a12, a21, a22, center, scale);
+                geoCtx.beginPath();
+                geoCtx.moveTo(p1.x, p1.y);
+                geoCtx.lineTo(p2.x, p2.y);
+                geoCtx.stroke();
+            }
+
+            // Área del cuadrado unitario transformado (0,0)-(1,0)-(1,1)-(0,1)
+            const sq0 = transformPoint(0, 0, a11, a12, a21, a22, center, scale);
+            const sq1 = transformPoint(1, 0, a11, a12, a21, a22, center, scale);
+            const sq2 = transformPoint(1, 1, a11, a12, a21, a22, center, scale);
+            const sq3 = transformPoint(0, 1, a11, a12, a21, a22, center, scale);
+
+            geoCtx.fillStyle = 'rgba(59, 130, 246, 0.25)';
+            geoCtx.beginPath();
+            geoCtx.moveTo(sq0.x, sq0.y);
+            geoCtx.lineTo(sq1.x, sq1.y);
+            geoCtx.lineTo(sq2.x, sq2.y);
+            geoCtx.lineTo(sq3.x, sq3.y);
+            geoCtx.closePath();
+            geoCtx.fill();
+
+            // Ejes cartesianos principales
+            geoCtx.strokeStyle = '#64748b';
+            geoCtx.lineWidth = 2;
+            geoCtx.beginPath();
+            geoCtx.moveTo(0, center.y); geoCtx.lineTo(w, center.y);
+            geoCtx.moveTo(center.x, 0); geoCtx.lineTo(center.x, h);
+            geoCtx.stroke();
+
+            // Vector i_hat transformado
+            drawArrow(geoCtx, center, sq1, '#10b981', 3);
+            // Vector j_hat transformado
+            drawArrow(geoCtx, center, sq3, '#f43f5e', 3);
+        }
+
+        function transformPoint(x, y, a11, a12, a21, a22, center, scale) {
+            const nx = a11 * x + a12 * y;
+            const ny = a21 * x + a22 * y;
+            return {
+                x: center.x + nx * scale,
+                y: center.y - ny * scale // Invertir Y para canvas
+            };
+        }
+
+        function drawArrow(ctx, from, to, color, width) {
+            const headlen = 10;
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const angle = Math.atan2(dy, dx);
+
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = width;
+
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(to.x, to.y);
+            ctx.lineTo(to.x - headlen * Math.cos(angle - Math.PI / 6), to.y - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(to.x - headlen * Math.cos(angle + Math.PI / 6), to.y - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // --- VERIFICADOR AUTOMÁTICO ---
+        function parseAndVerifyMatrix() {
+            const text = document.getElementById('verifier-input-text').value.trim();
+            const list = document.getElementById('verifier-checklist');
+            list.innerHTML = '';
+
+            if (!text) {
+                list.innerHTML = '<p class="text-xs text-rose-400">Por favor ingresa valores de matriz validos.</p>';
+                return;
+            }
+
+            try {
+                const lines = text.split('\n').filter(l => l.trim() !== '');
+                const parsedMat = lines.map(line => {
+                    return line.split(/[\s,]+/).filter(x => x !== '').map(Number);
+                });
+
+                const cols = parsedMat[0].length;
+                for (let r of parsedMat) {
+                    if (r.length !== cols) {
+                        throw new Error("Todas las filas deben tener el mismo número de elementos.");
+                    }
+                }
+
+                const props = checkAllMatrixProperties(parsedMat);
+
+                if (props.length === 0) {
+                    list.innerHTML = '<div class="p-3 bg-slate-800 rounded-lg text-xs text-slate-300">Matriz estándar general sin características simétricas o algebraicas restringidas.</div>';
+                } else {
+                    props.forEach(p => {
+                        const div = document.createElement('div');
+                        div.className = "p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-semibold text-emerald-400 flex items-center gap-2";
+                        div.innerHTML = `<i class="fa-solid fa-square-check"></i> ${p}`;
+                        list.appendChild(div);
+                    });
+                }
+            } catch (err) {
+                list.innerHTML = `<p class="text-xs text-rose-400">Error al procesar la matriz: ${err.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
