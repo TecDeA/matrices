@@ -10,7 +10,7 @@
  * caché, por lo que el evento 'activate' purga automáticamente los restos
  * de versiones anteriores.
  */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.10';
 const CACHE_NAME = `bestiario-matrices-${APP_VERSION}`;
 const STATIC_CACHE = `bestiario-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `bestiario-dynamic-${APP_VERSION}`;
