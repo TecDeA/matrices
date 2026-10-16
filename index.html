@@ -81,9 +81,17 @@
                     <i class="fa-solid fa-table-cells text-xl text-white"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
-                        El Bestiario de las Matrices
-                    </h1>
+                    <div class="flex items-center flex-wrap gap-2">
+                        <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
+                            El Bestiario de las Matrices
+                        </h1>
+                        <!-- Chip de versión (informada por el Service Worker) -->
+                        <span id="version-chip" title="Obteniendo versión del Service Worker…"
+                              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-slate-600/60 bg-slate-800/60 text-[10px] font-mono font-semibold text-slate-300 leading-none animate-pulse">
+                            <i class="fa-solid fa-code-branch text-[8px] opacity-70"></i>
+                            <span id="version-chip-text">…</span>
+                        </span>
+                    </div>
                     <p class="text-xs text-slate-400">Guía interactiva de tipos, familias, propiedades y geometría matricial</p>
                 </div>
             </div>
@@ -709,6 +717,97 @@
         ];
         let geoMatrix = [1, 0, 0, 1]; // a11, a12, a21, a22
 
+        // --- REGISTRO DEL SERVICE WORKER (necesario para el chip de versión y el modo offline) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Ruta relativa: funciona tanto en raíz como desplegado bajo /matrices/
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => console.log('[App] Service Worker registrado, alcance:', reg.scope))
+                    .catch((err) => console.warn('[App] No se pudo registrar el Service Worker:', err));
+            });
+        }
+
+        // --- CHIP DE VERSIÓN (obtenida del Service Worker vía MessageChannel) ---
+        const VERSION_TIMEOUT_MS = 3000;
+        let versionResolved = false;
+        const CHIP_PALETTE = {
+            loading:     ['border-slate-600/60', 'bg-slate-800/60', 'text-slate-300'],
+            ready:       ['border-blue-500/40',  'bg-blue-500/10',  'text-blue-300'],
+            unavailable: ['border-amber-500/40', 'bg-amber-500/10', 'text-amber-300']
+        };
+        const CHIP_COLORS_REMOVE = Object.values(CHIP_PALETTE).flat();
+
+        function setVersionChip(state, version, cacheName) {
+            const chip = document.getElementById('version-chip');
+            const chipText = document.getElementById('version-chip-text');
+            if (!chip || !chipText) return;
+            // No degradar el chip si ya se resolvió una versión válida
+            if (state === 'unavailable' && versionResolved) return;
+            if (state === 'ready') versionResolved = true;
+
+            chip.classList.remove('animate-pulse', ...CHIP_COLORS_REMOVE);
+            CHIP_PALETTE[state].forEach(c => chip.classList.add(c));
+
+            if (state === 'ready') {
+                chipText.textContent = 'v' + version;
+                chip.title = 'Versión ' + version + ' (informada por el Service Worker)' +
+                             (cacheName ? ' · Caché: ' + cacheName : '');
+            } else if (state === 'loading') {
+                chip.classList.add('animate-pulse');
+                chipText.textContent = '…';
+                chip.title = 'Obteniendo la versión desde el Service Worker…';
+            } else {
+                chipText.textContent = 'v—';
+                chip.title = 'Versión no disponible: el Service Worker no está activo o no respondió.';
+            }
+        }
+
+        function askVersionToSW(worker) {
+            if (!worker) {
+                setVersionChip('unavailable');
+                return;
+            }
+            try {
+                const channel = new MessageChannel();
+                let answered = false;
+                channel.port1.onmessage = (event) => {
+                    answered = true;
+                    const data = event.data || {};
+                    if (data.version) setVersionChip('ready', data.version, data.cacheName);
+                    else setVersionChip('unavailable');
+                };
+                // El SW responde por port2 (ver handler 'message' de sw.js)
+                worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+                setTimeout(() => {
+                    if (!answered) setVersionChip('unavailable');
+                }, VERSION_TIMEOUT_MS);
+            } catch (err) {
+                console.warn('[App] No se pudo consultar la versión al Service Worker:', err);
+                setVersionChip('unavailable');
+            }
+        }
+
+        function initVersionChip() {
+            setVersionChip('loading');
+            if (!('serviceWorker' in navigator)) {
+                setVersionChip('unavailable');
+                return;
+            }
+            if (navigator.serviceWorker.controller) {
+                // Carga con SW ya controlando la página
+                askVersionToSW(navigator.serviceWorker.controller);
+            } else {
+                // Primera visita: aún no hay controlador; esperamos a que el SW esté activo
+                navigator.serviceWorker.ready
+                    .then((reg) => reg.active ? askVersionToSW(reg.active) : setVersionChip('unavailable'))
+                    .catch(() => setVersionChip('unavailable'));
+            }
+            // Si el control cambia (p. ej. tras actualizarse el SW), refrescar la versión mostrada
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (navigator.serviceWorker.controller) askVersionToSW(navigator.serviceWorker.controller);
+            });
+        }
+
         // --- INICIALIZACIÓN ---
         window.onload = function() {
             renderBestiaryGrid(BESTIARY_DATA);
@@ -716,6 +815,7 @@
             renderInteractiveMatrixEditor();
             updateCalculations();
             initGeoCanvas();
+            initVersionChip();
 
             // Render LaTeX formulas
             if (window.renderMathInElement) {
