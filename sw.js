@@ -3,9 +3,17 @@
  * Proporciona funcionalidad offline y caché de recursos
  */
 
-const CACHE_NAME = 'bestiario-matrices-v1';
-const STATIC_CACHE = 'bestiario-static-v1';
-const DYNAMIC_CACHE = 'bestiario-dynamic-v1';
+/**
+ * Versión de la aplicación (única fuente de verdad).
+ * La página la consulta vía mensaje { type: 'GET_VERSION' } y la muestra
+ * en el chip del encabezado. Al subirla cambian también los nombres de
+ * caché, por lo que el evento 'activate' purga automáticamente los restos
+ * de versiones anteriores.
+ */
+const APP_VERSION = '1.0.0';
+const CACHE_NAME = `bestiario-matrices-${APP_VERSION}`;
+const STATIC_CACHE = `bestiario-static-${APP_VERSION}`;
+const DYNAMIC_CACHE = `bestiario-dynamic-${APP_VERSION}`;
 
 // Recursos estáticos para cachear en la instalación
 const STATIC_ASSETS = [
@@ -262,7 +270,13 @@ self.addEventListener('message', (event) => {
     }
     
     if (event.data && event.data.type === 'GET_VERSION') {
-        event.ports[0].postMessage({ version: CACHE_NAME });
+        // Responder por el MessageChannel transferido por la página
+        if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage({
+                version: APP_VERSION,
+                cacheName: CACHE_NAME
+            });
+        }
     }
 });
 
