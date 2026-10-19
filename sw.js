@@ -10,7 +10,7 @@
  * caché, por lo que el evento 'activate' purga automáticamente los restos
  * de versiones anteriores.
  */
-const APP_VERSION = '1.0.10';
+const APP_VERSION = '1.1.0';
 const CACHE_NAME = `bestiario-matrices-${APP_VERSION}`;
 const STATIC_CACHE = `bestiario-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `bestiario-dynamic-${APP_VERSION}`;
@@ -71,8 +71,11 @@ self.addEventListener('activate', (event) => {
                 return Promise.all(
                     cacheNames
                         .filter((name) => {
-                            // Eliminar caches que no sean los actuales
-                            return name !== STATIC_CACHE && 
+                            // Eliminar solo cachés propias (prefijo 'bestiario-').
+                            // caches.keys() es global al origen: sin este filtro
+                            // se borraban las cachés del portal y demás apps.
+                            return name.startsWith('bestiario-') &&
+                                   name !== STATIC_CACHE && 
                                    name !== DYNAMIC_CACHE &&
                                    name !== CACHE_NAME;
                         })
